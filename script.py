@@ -2,6 +2,7 @@ import json
 import asyncio
 import argparse
 
+from aiohttp import InvalidURL
 from colorama import Fore
 from yarl import URL
 from typing import Dict, List
@@ -37,24 +38,30 @@ class LeakedCookie:
         # preparation
         obj.argument_parser()
 
-        # make request and receiving cookies
-        await obj.make_request()
+        # makes request and receiving cookies
+        try:
+            await obj.make_request_to_target()
+        except InvalidURL:
+            obj.print_in_color(f'Wrong url: {obj.url}', True)
+            exit()
 
+        # print if needs found cookies from the target
         if obj.print_cookies_mod:
             obj.print_cookies()
 
-        await obj.download_jwt_secrets()
-        obj.parse_cookies()
+        # parsing cookies
+        await obj.parse_cookies()
 
+        # if not quiet print result to stdout
         if not obj.quiet:
             obj.print_result()
 
+        # saving results to a file
         obj.save_result_to_file()
 
     def argument_parser(self) -> None:
         """
-        Parsing url argument
-        set url
+        Parsing arguments
         :return: None
         """
         # Construct the argument parser
@@ -90,7 +97,7 @@ class LeakedCookie:
     @property
     def url(self) -> URL:
         """
-        getter for url
+        getter for a target url
         :return: URL url
         """
         return self._url
@@ -98,15 +105,15 @@ class LeakedCookie:
     @url.setter
     def url(self, url: URL) -> None:
         """
-        setting url
+        setting a target url
         :param url: str
         :return: None
         """
         self._url = URL(url)
 
-    async def make_request(self) -> None:
+    async def make_request_to_target(self) -> None:
         """
-        do request to the target
+        do request to a target
         :return: None
         """
         headers = {'User-agent': 'Googlebot-News', 'Cookie': 'security=low;'}
@@ -117,7 +124,7 @@ class LeakedCookie:
     @property
     def cookies(self) -> Dict:
         """
-        getter for cookies
+        getter for target cookies
         :return: Dict cookies
         """
         return self._cookies
@@ -125,7 +132,7 @@ class LeakedCookie:
     @cookies.setter
     def cookies(self, cookies: Dict[str, str]) -> None:
         """
-        set cookie from session
+        set cookie from aiohttp session
         :param cookies: Dict[str, str]
         :return: None
         """
@@ -201,20 +208,27 @@ class LeakedCookie:
         for value in self.result:
             for key, cookie in value.items():
                 self.print_in_color(f'{key}: {cookie}', True)
-        # print(json.dumps(self.result))
 
     async def download_jwt_secrets(self) -> None:
+        """
+        tries to download list of jwt secrets from GitHub repo
+        `https://github.com/wallarm/jwt-secrets`
+        :return: None
+        """
         async with aiohttp.ClientSession() as session:
             async with session.get(JWT_SECRETS_FILE_URL) as response:
                 if response.status == SUCCESS_RESPONSE_CODE:
                     content = await response.text()
                     self.jwt_secrets = content.splitlines()
 
-    def parse_cookies(self) -> None:
+    async def parse_cookies(self) -> None:
         """
-        loop for finding jwt secrets in cookies
+        downloads file with jwt secrets then
+        loops thought it to find jwt secrets in cookies
         :return: None
         """
+        await self.download_jwt_secrets()
+
         for key, cookie in self.cookies.items():
             if cookie in self.jwt_secrets:
                 self.result = {'title': key, 'cookie': cookie}
