@@ -10,6 +10,7 @@ from typing import Dict, List
 import aiohttp
 
 SUCCESS_RESPONSE_CODE = 200
+JWT_SECRETS_FILE_NAME = 'jwt.secrets.list'
 JWT_SECRETS_FILE_URL: str = 'https://raw.githubusercontent.com/wallarm/jwt-secrets/master/jwt.secrets.list'
 
 
@@ -39,14 +40,7 @@ class LeakedCookie:
         obj.argument_parser()
 
         # makes request and receiving cookies
-        try:
-            await obj.make_request_to_target()
-        except InvalidURL:
-            obj.print_in_color(f'Wrong url: {obj.url}', True)
-            exit()
-        except ClientConnectorError:
-            obj.print_in_color(f'Cannot connect to host {obj.url}.[nodename nor servname provided, or not known]', True)
-            exit()
+        await obj.make_request_to_target()
 
         # print if needs found cookies from the target
         if obj.print_cookies_mod:
@@ -121,8 +115,16 @@ class LeakedCookie:
         """
         headers = {'User-agent': 'Googlebot-News', 'Cookie': 'security=low;'}
         async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar()) as s:
-            async with s.get(self.url, headers=headers):
-                self.cookies = s.cookie_jar.filter_cookies(self.url)
+            try:
+                async with s.get(self.url, headers=headers):
+                    self.cookies = s.cookie_jar.filter_cookies(self.url)
+            except InvalidURL:
+                self.print_in_color(f'Wrong url: {self.url}', True)
+                exit()
+            except ClientConnectorError:
+                self.print_in_color(
+                    f'Cannot connect to host {self.url}.[nodename nor servname provided, or not known]', True)
+                exit()
 
     @property
     def cookies(self) -> Dict:
@@ -219,10 +221,16 @@ class LeakedCookie:
         :return: None
         """
         async with aiohttp.ClientSession() as session:
-            async with session.get(JWT_SECRETS_FILE_URL) as response:
-                if response.status == SUCCESS_RESPONSE_CODE:
-                    content = await response.text()
-                    self.jwt_secrets = content.splitlines()
+            try:
+                async with session.get(JWT_SECRETS_FILE_URL) as response:
+                    if response.status == SUCCESS_RESPONSE_CODE:
+                        content = await response.text()
+                        self.jwt_secrets = content.splitlines()
+                    else:
+                        raise Exception
+            except (ClientConnectorError, Exception):
+                with open(JWT_SECRETS_FILE_NAME, 'r') as file:
+                    self.jwt_secrets = file.readlines()
 
     async def parse_cookies(self) -> None:
         """
@@ -237,8 +245,8 @@ class LeakedCookie:
                 self.result = {'title': key, 'cookie': cookie}
 
     def save_result_to_file(self):
-        with open(self.result_file, 'w') as f:
-            f.write(str(json.dumps(self.result)))
+        with open(self.result_file, 'w') as file:
+            file.write(str(json.dumps(self.result)))
 
     def print_in_color(self, text: str, danger: bool = False) -> None:
         """
