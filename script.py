@@ -2,7 +2,7 @@ import json
 import asyncio
 import argparse
 
-from aiohttp import InvalidURL
+from aiohttp import InvalidURL, ClientConnectorError
 from colorama import Fore
 from yarl import URL
 from typing import Dict, List
@@ -43,6 +43,9 @@ class LeakedCookie:
             await obj.make_request_to_target()
         except InvalidURL:
             obj.print_in_color(f'Wrong url: {obj.url}', True)
+            exit()
+        except ClientConnectorError:
+            obj.print_in_color(f'Cannot connect to host {obj.url}.[nodename nor servname provided, or not known]', True)
             exit()
 
         # print if needs found cookies from the target
