@@ -1,13 +1,14 @@
 import json
 import asyncio
 import argparse
-
-from aiohttp import InvalidURL, ClientConnectorError
-from colorama import Fore
-from yarl import URL
 from typing import Dict, List
 
+from yarl import URL
+from colorama import Fore
+
 import aiohttp
+from aiohttp import InvalidURL, ClientConnectorError
+
 
 SUCCESS_RESPONSE_CODE = 200
 JWT_SECRETS_FILE_NAME = 'jwt.secrets.list'
