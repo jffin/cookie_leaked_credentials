@@ -200,7 +200,6 @@ class LeakedCookie:
 
         # makes request to receive cookies
         cookies = await Requests.make_request_to_target(URL(self.config.url), printer)
-        cookies.update({'SecretKeyToGenJWTs': 'secretissecret'})
 
         # create cookie parser
         cookie_parser = CookiesParser(cookies)
