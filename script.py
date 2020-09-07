@@ -116,11 +116,21 @@ class ReadWriteDocuments:
         self.result_file: str = result_file
 
     def save_result_to_file(self, result: List[Dict[str, str]]) -> None:
+        """
+        writes to a file found cookies in json format
+        :param result: List[Dict[str, str]]
+        result list with found vulnerable cookies
+        :return: None
+        """
         with open(self.result_file, 'w') as file:
             file.write(str(json.dumps(result)))
 
     @staticmethod
     def read_jwt_secrets_file() -> List[str]:
+        """
+        reads jwt secrets from file if downloadable file not available
+        :return: None
+        """
         with open(JWT_SECRETS_FILE_NAME, 'r') as file:
             return file.readlines()
 
@@ -187,6 +197,11 @@ class LeakedCookie:
 
     @classmethod
     async def from_config(cls, config: RunConfig) -> 'LeakedCookie':
+        """
+        reads config variable and creates class
+        :param config: RunConfig config for starting
+        :return: LeakedCookie
+        """
         return cls(config=config)
 
     async def run(self) -> None:
@@ -238,6 +253,11 @@ class LeakedCookie:
 
 
 def define_config_from_cmd(parsed_args: 'argparse.Namespace') -> RunConfig:
+    """
+    parsing config from args
+    :param parsed_args: argparse.Namespace
+    :return: RunConfig
+    """
     return RunConfig(
         url=parsed_args.url,
         output=parsed_args.output,
@@ -248,6 +268,10 @@ def define_config_from_cmd(parsed_args: 'argparse.Namespace') -> RunConfig:
 
 
 def cli() -> argparse.Namespace:
+    """
+    here we define args to run the script with
+    :return: argparse.Namespace
+    """
     parser = argparse.ArgumentParser(description='Finds jwt secrets in cookies')
     # Add the arguments to the parser
     parser.add_argument('-u', '--url', required=True, help='url', type=str)
