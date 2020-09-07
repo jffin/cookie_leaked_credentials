@@ -54,11 +54,11 @@ class PrettyPrint:
         """
         if result:
             self.print_in_color(f'\n[!] Secrets in cookies found:', True)
+            for value in result:
+                for key, cookie in value.items():
+                    self.print_in_color(f'{key}: {cookie}', True)
         else:
             self.print_in_color(f'\n[+] Success, no jwt secrets found')
-        for value in result:
-            for key, cookie in value.items():
-                self.print_in_color(f'{key}: {cookie}', True)
 
     def print_cookies(self, cookies: Dict) -> None:
         """
